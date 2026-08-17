@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://localhost:7096/api", // Đổi port cho khớp với Backend
+  baseURL: process.env.NEXT_PUBLIC_API_URL, // Đổi port cho khớp với Backend
   headers: {
     "Content-Type": "application/json",
   },

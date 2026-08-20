@@ -23,6 +23,16 @@ type UserForm = {
   systemRole: "Admin" | "User";
 };
 
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+      error?: string;
+      title?: string;
+    };
+  };
+};
+
 export default function UsersPage() {
   const confirm = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
@@ -78,11 +88,18 @@ export default function UsersPage() {
       confirmLabel: "Xóa thành viên",
     });
     if (!confirmed) return;
+    setError("");
     try {
       await api.delete(`/users/${id}`);
       load();
-    } catch {
-      setError("Không thể xóa thành viên đang có dữ liệu liên quan.");
+    } catch (error) {
+      const apiError = error as ApiError;
+      setError(
+        apiError.response?.data?.message ||
+          apiError.response?.data?.error ||
+          apiError.response?.data?.title ||
+          "Không thể xóa thành viên đang có dữ liệu liên quan.",
+      );
     }
   };
 

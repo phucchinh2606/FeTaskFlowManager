@@ -37,6 +37,7 @@ export default function UsersPage() {
   const confirm = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [performance, setPerformance] = useState<Performance[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState<UserForm | null>(null);
   const [error, setError] = useState("");
 
@@ -48,12 +49,14 @@ export default function UsersPage() {
       ]);
       setUsers(usersResponse.data);
       setPerformance(performanceResponse.data);
+      setSelectedIds(new Set());
     } catch {
       setError("Không thể tải danh sách thành viên.");
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, []);
 
@@ -105,6 +108,47 @@ export default function UsersPage() {
 
   const perf = (id: string) => performance.find((item) => item.userId === id);
 
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelectedIds((current) =>
+      current.size === users.length
+        ? new Set()
+        : new Set(users.map((member) => member.id)),
+    );
+  };
+
+  const removeSelected = async () => {
+    const selectedCount = selectedIds.size;
+    const confirmed = await confirm({
+      title: `Xóa ${selectedCount} thành viên?`,
+      message: "Bạn có chắc muốn xóa các thành viên đã chọn?",
+      confirmLabel: "Xóa các thành viên",
+    });
+    if (!confirmed) return;
+
+    setError("");
+    try {
+      await api.post("/users/bulk-delete", { ids: Array.from(selectedIds) });
+      await load();
+    } catch (error) {
+      const apiError = error as ApiError;
+      setError(
+        apiError.response?.data?.message ||
+          apiError.response?.data?.error ||
+          apiError.response?.data?.title ||
+          "Không thể xóa các thành viên đã chọn.",
+      );
+    }
+  };
+
   return (
     <AppShell
       title="Thành viên"
@@ -130,10 +174,38 @@ export default function UsersPage() {
         </p>
       )}
 
+      {users.length > 0 && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3">
+          <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === users.length}
+              onChange={toggleAll}
+              className="size-4 accent-sky-500"
+              aria-label="Chọn tất cả thành viên"
+            />
+            <span>
+              {selectedIds.size > 0
+                ? `Đã chọn ${selectedIds.size} thành viên`
+                : "Chọn tất cả thành viên"}
+            </span>
+          </label>
+          {selectedIds.size > 0 && (
+            <button
+              onClick={removeSelected}
+              className="rounded-lg bg-rose-500/15 px-3 py-2 text-sm font-bold text-rose-300 hover:bg-rose-500/25"
+            >
+              Xóa các thành viên đã chọn
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
         <table className="w-full text-left text-sm text-slate-200">
           <thead className="bg-slate-800/80 text-xs uppercase tracking-wide text-slate-400">
             <tr>
+              <th className="p-4">Chọn</th>
               <th className="p-4">Thành viên</th>
               <th className="p-4">Vai trò</th>
               <th className="p-4">Đang xử lý</th>
@@ -147,6 +219,15 @@ export default function UsersPage() {
               const item = perf(member.id);
               return (
                 <tr key={member.id}>
+                  <td className="p-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(member.id)}
+                      onChange={() => toggleSelected(member.id)}
+                      className="size-4 accent-sky-500"
+                      aria-label={`Chọn thành viên ${member.fullName}`}
+                    />
+                  </td>
                   <td className="p-4">
                     <p className="font-bold text-white">{member.fullName}</p>
                     <p className="mt-1 text-xs text-slate-400">

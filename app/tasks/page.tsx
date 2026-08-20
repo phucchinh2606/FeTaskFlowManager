@@ -117,7 +117,9 @@ export default function TasksPage() {
   };
 
   useEffect(() => {
-    if (user?.id) load();
+    if (!user?.id) return;
+    const loadTaskList = setTimeout(() => void load(), 0);
+    return () => clearTimeout(loadTaskList);
   }, [user?.id, manager, priority, statusFilter, assigneeFilter, query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -238,7 +240,7 @@ export default function TasksPage() {
         priority: "Medium",
         dueDate: "",
       });
-      load();
+      await load();
     } catch {
       setError("Không thể lưu công việc.");
     }
@@ -408,17 +410,45 @@ export default function TasksPage() {
                         <span className="max-w-32 truncate text-xs font-medium text-slate-300">
                           {task.assigneeName || "Chưa giao"}
                         </span>
-                        <select
-                          aria-label="Cập nhật trạng thái"
-                          onClick={(e) => e.stopPropagation()}
-                          value={task.status}
-                          onChange={(e) => changeStatus(task, e.target.value)}
-                          className="max-w-24 rounded border border-slate-700 bg-slate-800 p-1 text-[10px] font-bold text-slate-200 outline-none"
-                        >
-                          {statuses.map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select
+                            aria-label="Cập nhật trạng thái"
+                            onClick={(e) => e.stopPropagation()}
+                            value={task.status}
+                            onChange={(e) => changeStatus(task, e.target.value)}
+                            className="max-w-24 rounded border border-slate-700 bg-slate-800 p-1 text-[10px] font-bold text-slate-200 outline-none"
+                          >
+                            {statuses.map((s) => (
+                              <option key={s}>{s}</option>
+                            ))}
+                          </select>
+                          {manager && (
+                            <>
+                              <button
+                                type="button"
+                                aria-label={`Chỉnh sửa ${task.title}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  editTask(task);
+                                }}
+                                className="text-xs font-bold text-sky-400 hover:text-sky-300"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Xóa ${task.title}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteTask(task);
+                                }}
+                                className="text-xs font-bold text-rose-400 hover:text-rose-300"
+                              >
+                                Xóa
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </article>
                   ))}
@@ -585,11 +615,12 @@ export default function TasksPage() {
 }
 
 function Urgent({ tasks }: { tasks: Task[] }) {
+  const [now] = useState(() => Date.now());
   const urgent = tasks.filter(
     (t) =>
       t.dueDate &&
       t.status !== "Done" &&
-      new Date(t.dueDate) < new Date(Date.now() + 3 * 86400000),
+      new Date(t.dueDate) < new Date(now + 3 * 86400000),
   );
 
   return urgent.length ? (

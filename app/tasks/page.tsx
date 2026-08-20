@@ -1,11 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HubConnectionBuilder, HubConnectionState, LogLevel, type HubConnection } from "@microsoft/signalr";
+import {
+  HubConnectionBuilder,
+  HubConnectionState,
+  LogLevel,
+  type HubConnection,
+} from "@microsoft/signalr";
 import api from "@/lib/apiClient";
 import AppShell from "@/components/AppShell";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useCurrentUser } from "@/lib/auth";
-import { priorityLabel, statusLabel, statuses, type Comment, type Project, type Task, type User } from "@/lib/models";
+import {
+  priorityLabel,
+  statusLabel,
+  statuses,
+  type Comment,
+  type Project,
+  type Task,
+  type User,
+} from "@/lib/models";
 
 const chip = (value: string) =>
   value === "High"
@@ -17,9 +31,15 @@ const chip = (value: string) =>
         : "bg-slate-700 text-slate-200";
 
 const date = (v?: string) =>
-  v ? new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit" }).format(new Date(v)) : "Chưa đặt";
+  v
+    ? new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+      }).format(new Date(v))
+    : "Chưa đặt";
 
 export default function TasksPage() {
+  const confirm = useConfirm();
   const user = useCurrentUser();
   const manager = user?.role === "Admin";
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -55,7 +75,10 @@ export default function TasksPage() {
       const endpoint =
         manager && query.trim()
           ? "/tasks/search"
-          : manager && (statusFilter !== "All" || priority !== "All" || assigneeFilter !== "All")
+          : manager &&
+              (statusFilter !== "All" ||
+                priority !== "All" ||
+                assigneeFilter !== "All")
             ? "/tasks/filter"
             : manager
               ? "/tasks"
@@ -68,7 +91,8 @@ export default function TasksPage() {
             ? {
                 status: statusFilter === "All" ? undefined : statusFilter,
                 priority: priority === "All" ? undefined : priority,
-                assigneeId: assigneeFilter === "All" ? undefined : assigneeFilter,
+                assigneeId:
+                  assigneeFilter === "All" ? undefined : assigneeFilter,
               }
             : undefined;
 
@@ -84,7 +108,9 @@ export default function TasksPage() {
         setUsers(userResponse.data);
       }
     } catch {
-      setError("Không thể tải công việc. Vui lòng đăng nhập lại hoặc kiểm tra kết nối API.");
+      setError(
+        "Không thể tải công việc. Vui lòng đăng nhập lại hoặc kiểm tra kết nối API.",
+      );
     } finally {
       setLoading(false);
     }
@@ -96,7 +122,11 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    const hubUrl = (api.defaults.baseURL || "https://localhost:7096/api").replace(/\/api\/?$/, "") + "/hubs/notifications";
+    const hubUrl =
+      (api.defaults.baseURL || "https://localhost:7096/api").replace(
+        /\/api\/?$/,
+        "",
+      ) + "/hubs/notifications";
     const connection = new HubConnectionBuilder()
       .withUrl(hubUrl, {
         accessTokenFactory: () => localStorage.getItem("token") || "",
@@ -105,20 +135,28 @@ export default function TasksPage() {
       .configureLogging(LogLevel.Warning)
       .build();
 
-    connection.on("ReceiveComment", (incoming: Comment & { taskId: string }) => {
-      if (selectedTaskIdRef.current !== incoming.taskId) return;
-      setComments((previous) =>
-        previous.some((comment) => comment.id === incoming.id) ? previous : [...previous, incoming],
-      );
-    });
+    connection.on(
+      "ReceiveComment",
+      (incoming: Comment & { taskId: string }) => {
+        if (selectedTaskIdRef.current !== incoming.taskId) return;
+        setComments((previous) =>
+          previous.some((comment) => comment.id === incoming.id)
+            ? previous
+            : [...previous, incoming],
+        );
+      },
+    );
 
     connectionRef.current = connection;
     connection
       .start()
       .then(() => {
-        if (selectedTaskIdRef.current) return connection.invoke("JoinTask", selectedTaskIdRef.current);
+        if (selectedTaskIdRef.current)
+          return connection.invoke("JoinTask", selectedTaskIdRef.current);
       })
-      .catch(() => setError("Không thể kết nối cập nhật bình luận thời gian thực."));
+      .catch(() =>
+        setError("Không thể kết nối cập nhật bình luận thời gian thực."),
+      );
 
     return () => {
       connectionRef.current = null;
@@ -130,7 +168,12 @@ export default function TasksPage() {
     const taskId = selected?.id ?? null;
     selectedTaskIdRef.current = taskId;
     const connection = connectionRef.current;
-    if (!connection || connection.state !== HubConnectionState.Connected || !taskId) return;
+    if (
+      !connection ||
+      connection.state !== HubConnectionState.Connected ||
+      !taskId
+    )
+      return;
 
     connection.invoke("JoinTask", taskId);
     return () => {
@@ -152,7 +195,9 @@ export default function TasksPage() {
     try {
       setError("");
       await api.patch(`/tasks/${task.id}/status`, { status });
-      setTasks((old) => old.map((t) => (t.id === task.id ? { ...t, status } : t)));
+      setTasks((old) =>
+        old.map((t) => (t.id === task.id ? { ...t, status } : t)),
+      );
       setSelected((old) => (old?.id === task.id ? { ...old, status } : old));
     } catch {
       setError("Không thể cập nhật trạng thái. Vui lòng thử lại.");
@@ -174,13 +219,25 @@ export default function TasksPage() {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { ...form, assigneeId: form.assigneeId || null, dueDate: form.dueDate || null };
+    const payload = {
+      ...form,
+      assigneeId: form.assigneeId || null,
+      dueDate: form.dueDate || null,
+    };
     try {
-      if (editing) await api.put(`/tasks/${editing.id}`, { ...payload, id: editing.id });
+      if (editing)
+        await api.put(`/tasks/${editing.id}`, { ...payload, id: editing.id });
       else await api.post("/tasks", payload);
       setCreating(false);
       setEditing(null);
-      setForm({ title: "", description: "", projectId: "", assigneeId: "", priority: "Medium", dueDate: "" });
+      setForm({
+        title: "",
+        description: "",
+        projectId: "",
+        assigneeId: "",
+        priority: "Medium",
+        dueDate: "",
+      });
       load();
     } catch {
       setError("Không thể lưu công việc.");
@@ -201,7 +258,12 @@ export default function TasksPage() {
   };
 
   const deleteTask = async (task: Task) => {
-    if (!window.confirm("Xóa công việc này?")) return;
+    const confirmed = await confirm({
+      title: "Xóa công việc?",
+      message: "Công việc này sẽ bị xóa khỏi bảng công việc.",
+      confirmLabel: "Xóa công việc",
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/tasks/${task.id}`);
       setSelected(null);
@@ -240,7 +302,9 @@ export default function TasksPage() {
               className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none focus:border-sky-400"
             >
               <option value="All">Mọi trạng thái</option>
-              {statuses.map((status) => <option key={status}>{status}</option>)}
+              {statuses.map((status) => (
+                <option key={status}>{status}</option>
+              ))}
             </select>
             <select
               value={assigneeFilter}
@@ -249,7 +313,9 @@ export default function TasksPage() {
             >
               <option value="All">Mọi người phụ trách</option>
               {users.map((member) => (
-                <option key={member.id} value={member.id}>{member.fullName}</option>
+                <option key={member.id} value={member.id}>
+                  {member.fullName}
+                </option>
               ))}
             </select>
           </>
@@ -280,10 +346,16 @@ export default function TasksPage() {
             Đang chọn: <b className="text-white">{selected.title}</b>
           </span>
           <span className="flex gap-3">
-            <button onClick={() => editTask(selected)} className="font-bold text-sky-400">
+            <button
+              onClick={() => editTask(selected)}
+              className="font-bold text-sky-400"
+            >
               Chỉnh sửa
             </button>
-            <button onClick={() => deleteTask(selected)} className="font-bold text-rose-400">
+            <button
+              onClick={() => deleteTask(selected)}
+              className="font-bold text-rose-400"
+            >
               Xóa
             </button>
           </span>
@@ -295,9 +367,14 @@ export default function TasksPage() {
       ) : (
         <div className="grid gap-4 xl:grid-cols-4">
           {statuses.map((status) => (
-            <section key={status} className="min-h-80 rounded-2xl border border-slate-800 bg-slate-900/70 p-3">
+            <section
+              key={status}
+              className="min-h-80 rounded-2xl border border-slate-800 bg-slate-900/70 p-3"
+            >
               <div className="mb-3 flex items-center justify-between px-1">
-                <h2 className="text-sm font-bold text-slate-200">{statusLabel[status]}</h2>
+                <h2 className="text-sm font-bold text-slate-200">
+                  {statusLabel[status]}
+                </h2>
                 <span className="rounded-lg bg-slate-800 px-2 py-1 text-xs font-bold text-slate-300">
                   {filtered.filter((t) => t.status === status).length}
                 </span>
@@ -312,13 +389,21 @@ export default function TasksPage() {
                       className="cursor-pointer rounded-xl border border-slate-700 bg-slate-950/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-500/40 hover:shadow-lg"
                     >
                       <div className="mb-3 flex justify-between gap-2">
-                        <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${chip(task.priority)}`}>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[11px] font-bold ${chip(task.priority)}`}
+                        >
                           {priorityLabel[task.priority]}
                         </span>
-                        <span className="text-xs text-slate-400">{date(task.dueDate)}</span>
+                        <span className="text-xs text-slate-400">
+                          {date(task.dueDate)}
+                        </span>
                       </div>
-                      <h3 className="font-bold leading-snug text-white">{task.title}</h3>
-                      <p className="mt-2 truncate text-xs text-slate-400">{task.projectName || "Dự án"}</p>
+                      <h3 className="font-bold leading-snug text-white">
+                        {task.title}
+                      </h3>
+                      <p className="mt-2 truncate text-xs text-slate-400">
+                        {task.projectName || "Dự án"}
+                      </p>
                       <div className="mt-4 flex items-center justify-between">
                         <span className="max-w-32 truncate text-xs font-medium text-slate-300">
                           {task.assigneeName || "Chưa giao"}
@@ -330,7 +415,9 @@ export default function TasksPage() {
                           onChange={(e) => changeStatus(task, e.target.value)}
                           className="max-w-24 rounded border border-slate-700 bg-slate-800 p-1 text-[10px] font-bold text-slate-200 outline-none"
                         >
-                          {statuses.map((s) => <option key={s}>{s}</option>)}
+                          {statuses.map((s) => (
+                            <option key={s}>{s}</option>
+                          ))}
                         </select>
                       </div>
                     </article>
@@ -343,9 +430,14 @@ export default function TasksPage() {
 
       {creating && (
         <div className="fixed inset-0 z-30 grid place-items-center bg-slate-950/70 p-4">
-          <form onSubmit={create} className="w-full max-w-lg space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+          <form
+            onSubmit={create}
+            className="w-full max-w-lg space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+          >
             <div className="flex justify-between">
-              <h2 className="text-lg font-bold text-white">{editing ? "Cập nhật công việc" : "Tạo công việc"}</h2>
+              <h2 className="text-lg font-bold text-white">
+                {editing ? "Cập nhật công việc" : "Tạo công việc"}
+              </h2>
               <button
                 type="button"
                 onClick={() => {
@@ -366,7 +458,9 @@ export default function TasksPage() {
             />
             <textarea
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
               placeholder="Mô tả"
               className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white placeholder:text-slate-500 outline-none focus:border-sky-400"
             />
@@ -375,19 +469,31 @@ export default function TasksPage() {
                 required
                 disabled={!!editing}
                 value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, projectId: e.target.value })
+                }
                 className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-sky-400 disabled:bg-slate-800"
               >
                 <option value="">Chọn dự án</option>
-                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
               </select>
               <select
                 value={form.assigneeId}
-                onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, assigneeId: e.target.value })
+                }
                 className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-white outline-none focus:border-sky-400"
               >
                 <option value="">Chưa giao</option>
-                {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName}
+                  </option>
+                ))}
               </select>
               <select
                 value={form.priority}
@@ -416,14 +522,23 @@ export default function TasksPage() {
         <aside className="fixed inset-y-0 right-0 z-30 w-full max-w-md overflow-y-auto border-l border-slate-800 bg-slate-900 p-6 shadow-2xl">
           <div className="flex justify-between gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-400">{selected.projectName}</p>
-              <h2 className="mt-1 text-xl font-bold text-white">{selected.title}</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-400">
+                {selected.projectName}
+              </p>
+              <h2 className="mt-1 text-xl font-bold text-white">
+                {selected.title}
+              </h2>
             </div>
-            <button onClick={() => setSelected(null)} className="text-xl text-slate-400 hover:text-white">
+            <button
+              onClick={() => setSelected(null)}
+              className="text-xl text-slate-400 hover:text-white"
+            >
               ×
             </button>
           </div>
-          <p className="mt-5 text-sm leading-6 text-slate-300">{selected.description || "Chưa có mô tả."}</p>
+          <p className="mt-5 text-sm leading-6 text-slate-300">
+            {selected.description || "Chưa có mô tả."}
+          </p>
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <p className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-slate-200">
               <b className="text-white">Trạng thái</b>
@@ -439,7 +554,10 @@ export default function TasksPage() {
           <h3 className="mt-7 font-bold text-white">Trao đổi</h3>
           <div className="mt-3 space-y-3">
             {comments.map((c) => (
-              <div key={c.id} className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm">
+              <div
+                key={c.id}
+                className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm"
+              >
                 <p className="font-bold text-slate-200">{c.authorEmail}</p>
                 <p className="mt-1 text-slate-300">{c.content}</p>
               </div>
@@ -453,7 +571,10 @@ export default function TasksPage() {
               placeholder="Viết bình luận…"
               className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-sky-400"
             />
-            <button onClick={addComment} className="rounded-xl bg-sky-500 px-4 text-sm font-bold text-slate-950">
+            <button
+              onClick={addComment}
+              className="rounded-xl bg-sky-500 px-4 text-sm font-bold text-slate-950"
+            >
               Gửi
             </button>
           </div>
@@ -465,12 +586,16 @@ export default function TasksPage() {
 
 function Urgent({ tasks }: { tasks: Task[] }) {
   const urgent = tasks.filter(
-    (t) => t.dueDate && t.status !== "Done" && new Date(t.dueDate) < new Date(Date.now() + 3 * 86400000),
+    (t) =>
+      t.dueDate &&
+      t.status !== "Done" &&
+      new Date(t.dueDate) < new Date(Date.now() + 3 * 86400000),
   );
 
   return urgent.length ? (
     <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-      <b className="text-amber-100">Cần chú ý:</b> Bạn có {urgent.length} công việc đến hạn trong 3 ngày tới hoặc đã quá hạn.
+      <b className="text-amber-100">Cần chú ý:</b> Bạn có {urgent.length} công
+      việc đến hạn trong 3 ngày tới hoặc đã quá hạn.
     </div>
   ) : null;
 }

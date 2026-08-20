@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col">
       <Navbar />
 
       {/* Phần nội dung chính (flex-grow để đẩy Footer xuống dưới cùng nếu màn hình quá cao) */}

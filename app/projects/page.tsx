@@ -42,12 +42,7 @@ export default function ProjectsPage() {
   };
 
   const remove = async (id: string) => {
-    if (
-      !window.confirm(
-        "Xóa dự án sẽ xóa cả các công việc thuộc dự án. Tiếp tục?",
-      )
-    )
-      return;
+    if (!window.confirm("Xóa dự án sẽ xóa cả các công việc thuộc dự án. Tiếp tục?")) return;
     await api.delete(`/projects/${id}`);
     load();
   };
@@ -58,32 +53,23 @@ export default function ProjectsPage() {
       action={
         <button
           onClick={() => setForm({ name: "", description: "" })}
-          className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white"
+          className="rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-sky-500/20"
         >
           + Tạo dự án
         </button>
       }
     >
-      {error && (
-        <p className="mb-5 rounded-xl bg-rose-50 p-4 text-sm text-rose-700">
-          {error}
-        </p>
-      )}
+      {error && <p className="mb-5 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">{error}</p>}
+
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {projects.map((project) => (
-          <article
-            key={project.id}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
+          <article key={project.id} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-sm">
             <div className="flex justify-between gap-4">
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+              <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-300">
                 Đang hoạt động
               </span>
               <div className="flex gap-3 text-xs font-bold">
-                <Link
-                  href={`/projects/${project.id}`}
-                  className="text-indigo-600"
-                >
+                <Link href={`/projects/${project.id}`} className="text-sky-400 hover:text-sky-300">
                   Chi tiết
                 </Link>
                 <button
@@ -94,68 +80,54 @@ export default function ProjectsPage() {
                       description: project.description || "",
                     })
                   }
-                  className="text-indigo-600"
+                  className="text-sky-400 hover:text-sky-300"
                 >
                   Sửa
                 </button>
-                <button
-                  onClick={() => remove(project.id)}
-                  className="text-rose-600"
-                >
+                <button onClick={() => remove(project.id)} className="text-rose-400 hover:text-rose-300">
                   Xóa
                 </button>
               </div>
             </div>
-            <h2 className="mt-5 text-lg font-bold">{project.name}</h2>
-            <p className="mt-2 min-h-10 text-sm leading-6 text-slate-500">
+
+            <h2 className="mt-5 text-lg font-bold text-white">{project.name}</h2>
+            <p className="mt-2 min-h-10 text-sm leading-6 text-slate-400">
               {project.description || "Chưa có mô tả dự án."}
             </p>
-            <div className="mt-6 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-6 flex items-center justify-between text-xs text-slate-500">
               <span>
-                Tạo ngày{" "}
-                {new Intl.DateTimeFormat("vi-VN").format(
-                  new Date(project.createdAt),
-                )}
+                Tạo ngày {new Intl.DateTimeFormat("vi-VN").format(new Date(project.createdAt))}
               </span>
             </div>
           </article>
         ))}
       </div>
-      {!projects.length && (
-        <p className="py-16 text-center text-slate-500">Chưa có dự án nào.</p>
-      )}
+
+      {!projects.length && <p className="py-16 text-center text-slate-400">Chưa có dự án nào.</p>}
+
       {form && (
-        <div className="fixed inset-0 z-30 grid place-items-center bg-slate-900/30 p-4">
-          <form
-            onSubmit={save}
-            className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-xl"
-          >
+        <div className="fixed inset-0 z-30 grid place-items-center bg-slate-950/70 p-4">
+          <form onSubmit={save} className="w-full max-w-md space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
             <div className="flex justify-between">
-              <h2 className="font-bold">
-                {form.id ? "Cập nhật dự án" : "Dự án mới"}
-              </h2>
-              <button type="button" onClick={() => setForm(null)}>
+              <h2 className="font-bold text-white">{form.id ? "Cập nhật dự án" : "Dự án mới"}</h2>
+              <button type="button" onClick={() => setForm(null)} className="text-slate-400 hover:text-white">
                 ×
               </button>
             </div>
             <input
               required
               value={form.name}
-              onChange={(event) =>
-                setForm({ ...form, name: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
               placeholder="Tên dự án"
-              className="w-full rounded-xl border p-3"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white placeholder:text-slate-500 outline-none focus:border-sky-400"
             />
             <textarea
               value={form.description}
-              onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
               placeholder="Mô tả"
-              className="w-full rounded-xl border p-3"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-white placeholder:text-slate-500 outline-none focus:border-sky-400"
             />
-            <button className="w-full rounded-xl bg-indigo-600 py-3 font-bold text-white">
+            <button className="w-full rounded-xl bg-sky-500 py-3 font-bold text-slate-950">
               {form.id ? "Lưu thay đổi" : "Tạo dự án"}
             </button>
           </form>

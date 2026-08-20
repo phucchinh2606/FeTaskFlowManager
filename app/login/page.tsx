@@ -8,44 +8,29 @@ import apiClient from "@/lib/apiClient";
 export default function LoginPage() {
   const router = useRouter();
 
-  // State quản lý form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // State quản lý trạng thái UI
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Ngăn form tự động reload trang
+    e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      // Gọi API đến Backend .NET của bạn
-      // Đảm bảo URL port 7123 khớp với port Backend thực tế của bạn
-      const response = await apiClient.post(
-        "/auth/login",
-        {
-          email,
-          password,
-        },
-      );
-
-      // Giả sử API Backend trả về { token: "eyJhbGci..." }
+      const response = await apiClient.post("/auth/login", { email, password });
       const token = response.data.token;
 
       if (token) {
-        // 1. Lưu JWT Token vào localStorage
         localStorage.setItem("token", token);
-
-        // 2. Chuyển hướng người dùng vào trang Dashboard / Quản lý Task
         router.push("/dashboard");
       }
     } catch (error: unknown) {
-      // Xử lý lỗi (Sai mật khẩu, tài khoản không tồn tại...)
       if (
-        typeof error === "object" && error !== null && "response" in error &&
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
         typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
       ) {
         setErrorMessage((error as { response: { data: { message: string } } }).response.data.message);
@@ -58,53 +43,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 font-sans">
-      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-        {/* Header Form */}
-        <div className="text-center mb-8">
-          <Link
-            href="/"
-            className="text-2xl font-extrabold text-blue-600 tracking-tight cursor-pointer inline-block mb-2"
-          >
-            TaskMaster<span className="text-gray-900">.</span>
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 font-sans">
+      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl shadow-sky-500/10 backdrop-blur-xl">
+        <div className="mb-8 text-center">
+          <Link href="/" className="mb-3 inline-block text-2xl font-extrabold tracking-tight text-sky-400">
+            TaskFlow<span className="text-white">.</span>
           </Link>
-          <h2 className="text-xl font-bold text-gray-800">
-            Chào mừng trở lại!
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Vui lòng đăng nhập để tiếp tục
-          </p>
+          <h2 className="text-xl font-bold text-white">Chào mừng trở lại!</h2>
+          <p className="mt-1 text-sm text-slate-400">Vui lòng đăng nhập để tiếp tục</p>
         </div>
 
-        {/* Thông báo lỗi */}
         {errorMessage && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 text-center">
+          <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-center text-sm text-rose-300">
             {errorMessage}
           </div>
         )}
 
-        {/* Form Đăng nhập */}
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-200">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               placeholder="nhanvien@congty.com"
             />
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Mật khẩu
-              </label>
-              <Link href="#" className="text-sm text-blue-600 hover:underline">
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-sm font-medium text-slate-200">Mật khẩu</label>
+              <Link href="#" className="text-sm text-sky-400 hover:underline">
                 Quên mật khẩu?
               </Link>
             </div>
@@ -113,7 +84,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-2.5 text-slate-100 placeholder:text-slate-500 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               placeholder="••••••••"
             />
           </div>
@@ -121,23 +92,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-3 px-4 flex justify-center text-sm font-semibold text-white rounded-lg shadow-md transition ${
-              isLoading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
+            className={`flex w-full justify-center rounded-xl px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg transition ${
+              isLoading ? "cursor-not-allowed bg-sky-400/70" : "bg-sky-400 hover:bg-sky-300"
             }`}
           >
             {isLoading ? "Đang xử lý..." : "Đăng nhập"}
           </button>
         </form>
 
-        {/* Footer Form */}
-        <div className="mt-6 text-center text-sm text-gray-600">
+        <div className="mt-6 text-center text-sm text-slate-400">
           Chưa có tài khoản?{" "}
-          <Link
-            href="#"
-            className="text-blue-600 font-semibold hover:underline"
-          >
+          <Link href="#" className="font-semibold text-sky-400 hover:underline">
             Đăng ký ngay
           </Link>
         </div>
